@@ -2,7 +2,7 @@ import { useRef } from 'react'
 import { useStore } from '../store'
 import { formatTime } from '../utils/helpers'
 
-export default function BottomBar({ audioManager }) {
+export default function BottomBar() {
   const progressRef = useRef(null)
   const currentTrack = useStore(s => s.getCurrentTrack())
   const playState = useStore(s => s.playState)
@@ -16,6 +16,7 @@ export default function BottomBar({ audioManager }) {
   const tracks = useStore(s => s.tracks)
   const currentTrackId = useStore(s => s.currentTrackId)
   const setCurrentTrack = useStore(s => s.setCurrentTrack)
+  const audioManager = useStore(s => s.audioManager)
 
   const nextTrack = async (delta = 1) => {
     if (tracks.length === 0 || !audioManager) return

@@ -9,15 +9,14 @@ import BottomBar from './components/BottomBar'
 import Waveform from './components/Waveform'
 import LyricsDisplay from './components/LyricsDisplay'
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts'
-import { getWaveformCache, saveWaveformCache, computeFileHash } from './utils/db'
-import { computeWaveformPeaks } from './utils/audio'
-import { decodeAudioFile } from './utils/helpers'
+import { getWaveformCache } from './utils/db'
 
 export default function App() {
   const isInitialized = useStore(s => s.isInitialized)
   const setInitialized = useStore(s => s.setInitialized)
   const audioContext = useStore(s => s.audioContext)
   const setAudioContext = useStore(s => s.setAudioContext)
+  const setAudioManager = useStore(s => s.setAudioManager)
   const setFFTSize = useStore(s => s.setFFTSize)
   const fftSize = useStore(s => s.fftSize)
   const setCurrentTime = useStore(s => s.setCurrentTime)
@@ -35,7 +34,7 @@ export default function App() {
 
   const audioManagerRef = useRef(null)
 
-  useKeyboardShortcuts(audioManagerRef.current)
+  useKeyboardShortcuts()
 
   useEffect(() => {
     if (isInitialized && audioManagerRef.current) {
@@ -58,14 +57,18 @@ export default function App() {
       const manager = createAudioManager()
       manager.init(ctx)
       audioManagerRef.current = manager
+      setAudioManager(manager)
 
       manager.setTimeUpdateCallback((t) => setCurrentTime(t))
       manager.setEndedCallback(async () => {
         setPlayState('paused')
-        if (tracks.length > 1) {
-          const idx = tracks.findIndex(t => t.id === currentTrackId)
-          const nextIdx = (idx + 1) % tracks.length
-          const t = tracks[nextIdx]
+        const state = useStore.getState()
+        const curTracks = state.tracks
+        const curId = state.currentTrackId
+        if (curTracks.length > 1) {
+          const idx = curTracks.findIndex(t => t.id === curId)
+          const nextIdx = (idx + 1) % curTracks.length
+          const t = curTracks[nextIdx]
           setCurrentTrack(t.id)
           try {
             const d = await manager.loadTrack(t)
@@ -109,6 +112,19 @@ export default function App() {
 
   const waveformData = currentTrack ? waveformCache[currentTrack.id] : null
 
+  const handleFilesReady = async () => {
+    const state = useStore.getState()
+    const track = state.tracks[0]
+    if (track && audioManagerRef.current) {
+      try {
+        const d = await audioManagerRef.current.loadTrack(track)
+        setDuration(d)
+        track.duration = d
+        useStore.setState({ tracks: [...state.tracks] })
+      } catch (e) { console.warn(e) }
+    }
+  }
+
   return (
     <div style={{
       width: '100%', height: '100%',
@@ -117,8 +133,6 @@ export default function App() {
       position: 'relative',
       overflow: 'hidden'
     }}>
-      <audio id="audio-element" style={{ display: 'none' }} />
-
       <AnimatePresence>
         {showStart && (
           <motion.div
@@ -245,20 +259,7 @@ export default function App() {
         minHeight: 0
       }}>
         <div style={{ width: 280, flexShrink: 0 }}>
-          <FilePanel
-            audioManager={audioManagerRef.current}
-            onFilesReady={async () => {
-              const track = tracks[0]
-              if (track && audioManagerRef.current) {
-                try {
-                  const d = await audioManagerRef.current.loadTrack(track)
-                  setDuration(d)
-                  track.duration = d
-                  useStore.setState({ tracks: [...tracks] })
-                } catch (e) { console.warn(e) }
-              }
-            }}
-          />
+          <FilePanel onFilesReady={handleFilesReady} />
         </div>
 
         <div
@@ -279,9 +280,7 @@ export default function App() {
             />
           </div>
           <div style={{ flex: 1, minHeight: 0, position: 'relative' }}>
-            <VisualizerCanvas
-              audioManager={audioManagerRef.current}
-            />
+            <VisualizerCanvas />
             <LyricsDisplay />
           </div>
         </div>
@@ -291,7 +290,7 @@ export default function App() {
         </div>
       </div>
 
-      <BottomBar audioManager={audioManagerRef.current} />
+      <BottomBar />
 
       <AnimatePresence>
         {isExporting && (

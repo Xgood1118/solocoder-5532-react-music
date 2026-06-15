@@ -9,7 +9,7 @@ import { parseLRC } from '../utils/lrc'
 const AUDIO_EXT = ['mp3', 'flac', 'wav', 'ogg', 'm4a', 'aac']
 const LRC_EXT = ['lrc', 'txt']
 
-export default function FilePanel({ audioManager, onFilesReady }) {
+export default function FilePanel({ onFilesReady }) {
   const dropRef = useRef(null)
   const fileInputRef = useRef(null)
   const lrcInputRef = useRef(null)
@@ -22,6 +22,7 @@ export default function FilePanel({ audioManager, onFilesReady }) {
   const removeTrack = useStore(s => s.removeTrack)
   const setCurrentTrack = useStore(s => s.setCurrentTrack)
   const audioContext = useStore(s => s.audioContext)
+  const audioManager = useStore(s => s.audioManager)
   const setWaveformData = useStore(s => s.setWaveformData)
   const setDuration = useStore(s => s.setDuration)
 

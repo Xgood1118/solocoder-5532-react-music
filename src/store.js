@@ -21,6 +21,9 @@ export const useStore = create((set, get) => ({
   audioContext: null,
   setAudioContext: (ctx) => set({ audioContext: ctx }),
 
+  audioManager: null,
+  setAudioManager: (m) => set({ audioManager: m }),
+
   isInitialized: false,
   setInitialized: (v) => set({ isInitialized: v }),
 

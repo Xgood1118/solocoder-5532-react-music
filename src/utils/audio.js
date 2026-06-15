@@ -53,6 +53,7 @@ export function createAudioManager() {
   let gainNode = null
   let audioElement = null
   let sourceNode = null
+  let streamDest = null
   let currentTrack = null
   let onTimeUpdate = null
   let onEnded = null
@@ -67,8 +68,11 @@ export function createAudioManager() {
     analyser.smoothingTimeConstant = 0.8
     gainNode = audioContext.createGain()
     gainNode.gain.value = 1.0
+    streamDest = audioContext.createMediaStreamDestination()
+
     analyser.connect(gainNode)
     gainNode.connect(audioContext.destination)
+    gainNode.connect(streamDest)
 
     audioElement = new Audio()
     audioElement.crossOrigin = 'anonymous'
@@ -127,6 +131,7 @@ export function createAudioManager() {
   const getAudioElement = () => audioElement
   const getCurrentTime = () => audioElement ? audioElement.currentTime : 0
   const getDuration = () => audioElement ? audioElement.duration : 0
+  const getAudioStream = () => streamDest ? streamDest.stream : null
 
   return {
     init,
@@ -141,6 +146,7 @@ export function createAudioManager() {
     getAudioElement,
     getCurrentTime,
     getDuration,
+    getAudioStream,
     setTimeUpdateCallback,
     setEndedCallback
   }

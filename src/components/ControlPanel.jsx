@@ -30,27 +30,48 @@ export default function ControlPanel() {
   const currentTrack = useStore(s => s.getCurrentTrack())
   const duration = useStore(s => s.duration)
   const currentTime = useStore(s => s.currentTime)
+  const audioManager = useStore(s => s.audioManager)
 
   const [exportTimer, setExportTimer] = useState(null)
   const [exportCancelFn, setExportCancelFn] = useState(null)
 
+  const clearExportState = () => {
+    if (exportTimer) {
+      clearInterval(exportTimer)
+      setExportTimer(null)
+    }
+    setIsExporting(false)
+    setExportProgress(0)
+    setExportCancelFn(null)
+  }
+
   const handleExport = async () => {
     const canvas = document.querySelector('#visualizer-container canvas')
-    const audioEl = document.querySelector('#audio-element')
     if (!canvas) {
       alert('可视化画布未就绪')
       return
     }
+    if (!audioManager) {
+      alert('音频管理器未初始化')
+      return
+    }
+    const audioStream = audioManager.getAudioStream()
     const res = EXPORT_RESOLUTIONS[exportResolution]
     setIsExporting(true)
     setExportProgress(0)
 
     try {
       const startTime = Date.now()
-      const result = await startExport(canvas, audioEl, {
+      const result = startExport(canvas, audioStream, {
         width: res.width,
         height: res.height,
-        filename: currentTrack ? `${currentTrack.name}_visualizer.webm` : undefined
+        filename: currentTrack ? `${currentTrack.name}_visualizer.webm` : undefined,
+        onFinished: (err) => {
+          clearExportState()
+          if (err) {
+            alert('导出失败：' + err.message)
+          }
+        }
       })
       setExportCancelFn(() => result.cancel)
 
@@ -68,7 +89,7 @@ export default function ControlPanel() {
     } catch (e) {
       console.error(e)
       alert('导出失败：' + e.message)
-      setIsExporting(false)
+      clearExportState()
     }
   }
 
@@ -76,13 +97,7 @@ export default function ControlPanel() {
     if (exportCancelFn) {
       try { exportCancelFn() } catch (e) {}
     }
-    if (exportTimer) {
-      clearInterval(exportTimer)
-      setExportTimer(null)
-    }
-    setIsExporting(false)
-    setExportProgress(0)
-    setExportCancelFn(null)
+    clearExportState()
   }
 
   return (

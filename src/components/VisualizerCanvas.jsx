@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react'
 import { useStore, COLOR_THEMES } from '../store'
 import { drawBars, drawWave, drawCircle, drawParticles, resetParticles } from '../utils/visualizers'
 
-export default function VisualizerCanvas({ audioManager }) {
+export default function VisualizerCanvas() {
   const canvasRef = useRef(null)
   const containerRef = useRef(null)
   const rafRef = useRef(0)
@@ -14,6 +14,7 @@ export default function VisualizerCanvas({ audioManager }) {
   const colorThemeIndex = useStore(s => s.colorThemeIndex)
   const playState = useStore(s => s.playState)
   const isExporting = useStore(s => s.isExporting)
+  const audioManager = useStore(s => s.audioManager)
 
   useEffect(() => { modeRef.current = mode }, [mode])
 

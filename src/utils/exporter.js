@@ -1,8 +1,6 @@
-export async function startExport(canvas, audioEl, options) {
+export async function startExport(canvas, audioStream, options) {
   const {
-    width, height, filename,
-    onProgress, onStop
-  } = options
+    width, height, filename, onFinished } = options
 
   let targetCanvas = canvas
   let needsResize = false
@@ -18,21 +16,6 @@ export async function startExport(canvas, audioEl, options) {
 
   const tCtx = targetCanvas.getContext('2d')
   const canvasStream = targetCanvas.captureStream(60)
-
-  let audioStream = null
-  if (audioEl) {
-    try {
-      const AudioCtx = window.AudioContext || window.webkitAudioContext
-      const audioCtx = new AudioCtx()
-      const source = audioCtx.createMediaElementSource(audioEl)
-      const dest = audioCtx.createMediaStreamDestination()
-      source.connect(dest)
-      source.connect(audioCtx.destination)
-      audioStream = dest.stream
-    } catch (e) {
-      console.warn('Audio stream capture failed:', e)
-    }
-  }
 
   const combinedStream = new MediaStream()
   canvasStream.getVideoTracks().forEach(t => combinedStream.addTrack(t))
@@ -66,43 +49,40 @@ export async function startExport(canvas, audioEl, options) {
     rafId = requestAnimationFrame(drawLoop)
   }
 
-  return new Promise((resolve, reject) => {
-    recorder.onstop = () => {
-      cancelAnimationFrame(rafId)
-      if (needsResize) {
-        canvas.width = origWidth
-        canvas.height = origHeight
-      }
-      const blob = new Blob(chunks, { type: mimeType })
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = filename || `visualization_${Date.now()}.webm`
-      document.body.appendChild(a)
-      a.click()
-      document.body.removeChild(a)
-      setTimeout(() => URL.revokeObjectURL(url), 1000)
-      if (onStop) onStop()
-      resolve()
+  recorder.onstop = () => {
+    cancelAnimationFrame(rafId)
+    if (needsResize) {
+      canvas.width = origWidth
+      canvas.height = origHeight
     }
+    const blob = new Blob(chunks, { type: mimeType })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = filename || `visualization_${Date.now()}.webm`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    setTimeout(() => URL.revokeObjectURL(url), 1000)
+    if (onFinished) onFinished(null)
+  }
 
-    recorder.onerror = (e) => {
-      cancelAnimationFrame(rafId)
-      reject(e)
-    }
+  recorder.onerror = (e) => {
+    cancelAnimationFrame(rafId)
+    console.error('Recorder error:', e)
+    if (onFinished) onFinished(e)
+  }
 
-    try {
-      recorder.start(100)
-      rafId = requestAnimationFrame(drawLoop)
-      resolve({
-        cancel: () => {
-          if (recorder.state !== 'inactive') {
-            recorder.stop()
-          }
+  recorder.start(100)
+  rafId = requestAnimationFrame(drawLoop)
+
+  return {
+    cancel: () => {
+      try {
+        if (recorder.state !== 'inactive') {
+          recorder.stop()
         }
-      })
-    } catch (e) {
-      reject(e)
+      } catch (err) { console.warn(err) }
     }
-  })
+  }
 }

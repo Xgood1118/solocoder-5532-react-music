@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
 import { useStore } from '../store'
 
-export function useKeyboardShortcuts(audioManager) {
+export function useKeyboardShortcuts() {
   const playState = useStore(s => s.playState)
   const setPlayState = useStore(s => s.setPlayState)
   const currentTime = useStore(s => s.currentTime)
@@ -12,6 +12,7 @@ export function useKeyboardShortcuts(audioManager) {
   const currentTrackId = useStore(s => s.currentTrackId)
   const setCurrentTrack = useStore(s => s.setCurrentTrack)
   const isInitialized = useStore(s => s.isInitialized)
+  const audioManager = useStore(s => s.audioManager)
 
   useEffect(() => {
     const switchTrack = async (delta = 1) => {
